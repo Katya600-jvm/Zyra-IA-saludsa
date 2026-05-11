@@ -1573,47 +1573,50 @@ async function enviarProgramadoAprobado() {
 
 // Mapa de imágenes por tema — carpeta SharePoint Saludsa
 const IMAGENES_SHAREPOINT = {
+  'campeonato':    'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'relampago':     'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'relámpago':     'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'torneo':        'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'futbol':        'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'fútbol':        'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'deporte':       'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'madre':         'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'mama':          'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'mamá':          'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'mujer':         'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'inscripcion':   'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'inscripción':   'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'edificio':      'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'instalaciones': 'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
   'reunion':       'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
-  'meeting':       'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
+  'reunión':       'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
   'capacitacion':  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
   'capacitación':  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
-  'training':      'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
   'felicitacion':  'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80',
   'felicitación':  'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80',
-  'logro':         'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80',
   'bienvenida':    'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80',
-  'bienvenido':    'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80',
   'recordatorio':  'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&q=80',
-  'salud':         'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80',
-  'beneficio':     'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80',
-  'vacaciones':    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
-  'evento':        'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
-  'celebracion':   'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
-  'celebración':   'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
-  'navidad':       'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?w=800&q=80',
-  'urgente':       'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
-  'alerta':        'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
-  'cumpleanos':    'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80',
-  'cumpleaños':    'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80',
-  'aniversario':   'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80',
-  'premio':        'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800&q=80',
-  'reconocimiento':'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800&q=80',
   'default':       'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80'
 };
 
 let _imgActual = '';
 let _imgIndex  = 0;
 
-function imagenPorTema(titulo) {
-  const t=(titulo||'').toLowerCase();
+function imagenPorTema(titulo, tituloNorm) {
+  const t  = (titulo||'').toLowerCase();
+  const tn = tituloNorm || t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   for(const[k,v] of Object.entries(IMAGENES_SHAREPOINT)){
-    if(k!=='default'&&t.includes(k))return v;
+    if(k==='default') continue;
+    const kn = k.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if(t.includes(k) || tn.includes(kn) || t.includes(kn) || tn.includes(k)) return v;
   }
   return IMAGENES_SHAREPOINT['default'];
 }
 
 function mostrarImagenIA(titulo) {
-  const url = imagenPorTema(titulo);
+  // Normalizar tildes para comparación
+  const tituloNorm = titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const url = imagenPorTema(titulo, tituloNorm);
   _imgActual = url;
   _imgIndex  = 0;
   const prev  = document.getElementById('com-img-preview');
