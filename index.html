@@ -728,8 +728,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 </div>
 
 <!-- Comunicado Modal -->
-<div class="modal-overlay" id="modCom" onclick="if(event.target===this)closeModal('modCom')">
-  <div class="modal" style="max-width:620px;width:95%;" onclick="event.stopPropagation()">
+<div class="modal-overlay" id="modCom">
+  <div class="modal" style="max-width:600px;width:95%;max-height:90vh;overflow-y:auto;padding:22px;" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title"><i class="fas fa-bullhorn" style="color:var(--saludsa-blue);"></i>Nuevo Comunicado</div>
       <button class="modal-close" onclick="closeModal('modCom')">✕</button>
@@ -748,7 +748,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       <!-- Preview imagen seleccionada por IA -->
       <div id="com-img-preview" style="display:none;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--blue-200);position:relative;">
         <div style="position:absolute;top:8px;left:8px;background:rgba(0,87,184,0.85);color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🤖 Imagen seleccionada por Zyra IA</div>
-        <img id="com-img-tag" style="width:100%;max-height:160px;object-fit:cover;display:block;" alt="Imagen del comunicado">
+        <img id="com-img-tag" style="width:100%;max-height:120px;object-fit:cover;display:block;" alt="Imagen del comunicado">
         <div style="padding:8px 12px;background:var(--blue-50);display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:11px;color:var(--blue-600);font-weight:600;" id="com-img-label">Imagen seleccionada</span>
           <button type="button" class="btn btn-outline btn-xs" onclick="cambiarImagen()"><i class="fas fa-sync"></i> Cambiar</button>
@@ -763,8 +763,50 @@ textarea.form-control { resize: vertical; min-height: 80px; }
         <textarea id="com-mensaje" class="form-control" rows="4"></textarea>
         <div style="font-size:11px;color:var(--gray-400);margin-top:3px;">Puedes editar el mensaje antes de enviar.</div>
       </div>
+      <!-- CANALES DE PUBLICACIÓN -->
       <div class="form-group">
-        <label class="form-label">Grupos Destinatarios *</label>
+        <label class="form-label">Canales de Publicación *</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+
+          <!-- WhatsApp -->
+          <div id="canal-wa" onclick="toggleCanal('wa')" style="cursor:pointer;border:2px solid #22c55e;border-radius:var(--radius);padding:12px;background:#f0fdf4;transition:all 0.2s;user-select:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="width:36px;height:36px;background:#22c55e;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;">💬</div>
+              <div id="canal-wa-check" style="width:20px;height:20px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">✓</div>
+            </div>
+            <div style="font-size:13px;font-weight:800;color:#15803d;">WhatsApp</div>
+            <div style="font-size:10px;color:#16a34a;margin-top:2px;">Grupos de comunidades</div>
+            <input type="hidden" id="canal-wa-val" value="1">
+          </div>
+
+          <!-- Instagram -->
+          <div id="canal-ig" onclick="toggleCanal('ig')" style="cursor:pointer;border:2px solid var(--gray-200);border-radius:var(--radius);padding:12px;background:var(--gray-50);transition:all 0.2s;user-select:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="width:36px;height:36px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;">📸</div>
+              <div id="canal-ig-check" style="width:20px;height:20px;background:var(--gray-200);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">✓</div>
+            </div>
+            <div style="font-size:13px;font-weight:800;color:var(--gray-700);">Instagram</div>
+            <div style="font-size:10px;color:var(--gray-500);margin-top:2px;">@yosoysaludsa</div>
+            <input type="hidden" id="canal-ig-val" value="0">
+          </div>
+
+          <!-- TikTok -->
+          <div id="canal-tt" onclick="toggleCanal('tt')" style="cursor:pointer;border:2px solid var(--gray-200);border-radius:var(--radius);padding:12px;background:var(--gray-50);transition:all 0.2s;user-select:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="width:36px;height:36px;background:#010101;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div>
+              <div id="canal-tt-check" style="width:20px;height:20px;background:var(--gray-200);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;">✓</div>
+            </div>
+            <div style="font-size:13px;font-weight:800;color:var(--gray-700);">TikTok</div>
+            <div style="font-size:10px;color:var(--gray-500);margin-top:2px;">@yosoysaludsa</div>
+            <input type="hidden" id="canal-tt-val" value="0">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- GRUPOS WHATSAPP (se muestra solo si WA está activo) -->
+      <div class="form-group" id="grupos-wa-section">
+        <label class="form-label"><i class="fab fa-whatsapp" style="color:#22c55e;"></i> Grupos WhatsApp *</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:11px;background:var(--gray-50);border-radius:var(--radius);border:1.5px solid var(--gray-200);">
           <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;"><input type="checkbox" id="grp-todos" onchange="toggleAllGrp(this)"> <strong>Todos los grupos</strong></label>
           <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;"><input type="checkbox" class="grp-chk" value="Tecnología"> Tecnología</label>
@@ -774,6 +816,78 @@ textarea.form-control { resize: vertical; min-height: 80px; }
           <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;"><input type="checkbox" class="grp-chk" value="Finanzas"> Finanzas</label>
           <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;"><input type="checkbox" class="grp-chk" value="ConcursoIA"> ConcursoIA-Zyra</label>
           <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;"><input type="checkbox" class="grp-chk" value="General"> General</label>
+        </div>
+      </div>
+
+      <!-- INSTAGRAM CONTENT -->
+      <div id="canal-ig-info" style="display:none;">
+        <div style="border:1.5px solid #dc2743;border-radius:var(--radius);overflow:hidden;">
+          <div style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);padding:10px 14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;">📸</span>
+            <div>
+              <div style="color:white;font-size:12px;font-weight:800;">Instagram · @yosoysaludsa</div>
+              <div style="color:rgba(255,255,255,0.75);font-size:10px;">Post en el feed de Saludsa</div>
+            </div>
+          </div>
+          <div style="padding:12px;background:white;">
+            <!-- Preview automático -->
+            <div id="ig-auto-preview" style="display:none;margin-bottom:10px;">
+              <div style="font-size:10px;font-weight:700;color:#9d174d;text-transform:uppercase;margin-bottom:5px;">📌 Contenido automático detectado</div>
+              <img id="ig-img-tag" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px;display:block;" alt="Instagram">
+              <div style="font-size:11px;color:#6b7280;margin-top:4px;" id="ig-img-label">Imagen seleccionada por IA</div>
+            </div>
+            <!-- Opciones -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="usarContenidoAutoIG()" style="border-color:#dc2743;color:#dc2743;font-size:11px;">
+                <i class="fas fa-magic"></i> Usar contenido automático
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('ig-upload').click()" style="font-size:11px;">
+                <i class="fas fa-upload"></i> Subir imagen/video
+              </button>
+              <input type="file" id="ig-upload" accept="image/*,video/*" style="display:none;" onchange="previewUploadIG(event)">
+            </div>
+            <div id="ig-upload-preview" style="display:none;margin-top:8px;">
+              <div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:4px;">📎 Archivo seleccionado:</div>
+              <div id="ig-upload-name" style="font-size:12px;color:#6b7280;background:#f8fafc;padding:6px 10px;border-radius:6px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIKTOK CONTENT -->
+      <div id="canal-tt-info" style="display:none;">
+        <div style="border:1.5px solid #010101;border-radius:var(--radius);overflow:hidden;">
+          <div style="background:#010101;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;">🎵</span>
+            <div>
+              <div style="color:white;font-size:12px;font-weight:800;">TikTok · @yosoysaludsa</div>
+              <div style="color:rgba(255,255,255,0.6);font-size:10px;">Publicación en cuenta oficial de Saludsa</div>
+            </div>
+          </div>
+          <div style="padding:12px;background:white;">
+            <!-- Preview automático -->
+            <div id="tt-auto-preview" style="display:none;margin-bottom:10px;">
+              <div style="font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;margin-bottom:5px;">📌 Contenido automático detectado</div>
+              <div id="tt-media-preview" style="background:#f8fafc;border-radius:6px;padding:10px;text-align:center;">
+                <span style="font-size:32px;" id="tt-media-icon">🎥</span>
+                <div style="font-size:11px;color:#374151;font-weight:700;margin-top:4px;" id="tt-media-label">Video/Imagen detectado</div>
+              </div>
+            </div>
+            <!-- Opciones -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="usarContenidoAutoTT()" style="border-color:#010101;color:#010101;font-size:11px;">
+                <i class="fas fa-magic"></i> Usar contenido automático
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('tt-upload').click()" style="font-size:11px;">
+                <i class="fas fa-upload"></i> Subir imagen/video
+              </button>
+              <input type="file" id="tt-upload" accept="image/*,video/*" style="display:none;" onchange="previewUploadTT(event)">
+            </div>
+            <div id="tt-upload-preview" style="display:none;margin-top:8px;">
+              <div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:4px;">📎 Archivo seleccionado:</div>
+              <div id="tt-upload-name" style="font-size:12px;color:#6b7280;background:#f8fafc;padding:6px 10px;border-radius:6px;"></div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -796,8 +910,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 </div>
 
 <!-- Aprobación Comunicado -->
-<div class="modal-overlay" id="modAprobacion" onclick="if(event.target===this)closeModal('modAprobacion')">
-  <div class="modal" style="max-width:540px;width:95%;" onclick="event.stopPropagation()">
+<div class="modal-overlay" id="modAprobacion">
+  <div class="modal" style="max-width:540px;width:95%;max-height:90vh;overflow-y:auto;" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title"><i class="fas fa-shield-alt" style="color:var(--amber-500);"></i>Aprobar Comunicado</div>
       <button class="modal-close" onclick="closeModal('modAprobacion')">✕</button>
@@ -812,7 +926,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 
 <!-- Modal Programación post-aprobación -->
-<div class="modal-overlay" id="modProgramar" onclick="if(event.target===this)closeModal('modProgramar')">
+<div class="modal-overlay" id="modProgramar">
   <div class="modal" style="max-width:480px;" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title"><i class="fas fa-check-circle" style="color:var(--green-500);"></i> ¡Comunicado Aprobado!</div>
@@ -1418,12 +1532,146 @@ function openComModal() {
   document.getElementById('com-prio').value='normal';
   document.querySelectorAll('.grp-chk').forEach(c=>c.checked=false);
   document.getElementById('grp-todos').checked=false;
+  // Reset canales — WA activo por defecto
+  ['ig','tt'].forEach(c=>{
+    const v=document.getElementById('canal-'+c+'-val'); if(v) v.value='0';
+    const el=document.getElementById('canal-'+c); if(el){el.style.border='2px solid var(--gray-200)';el.style.background='var(--gray-50)';}
+    const ch=document.getElementById('canal-'+c+'-check'); if(ch) ch.style.background='var(--gray-200)';
+  });
+  const waEl=document.getElementById('canal-wa'); if(waEl){waEl.style.border='2px solid #22c55e';waEl.style.background='#f0fdf4';}
+  const waV=document.getElementById('canal-wa-val'); if(waV) waV.value='1';
+  const waC=document.getElementById('canal-wa-check'); if(waC) waC.style.background='#22c55e';
+  const igInfo=document.getElementById('canal-ig-info'); if(igInfo) igInfo.style.display='none';
+  const ttInfo=document.getElementById('canal-tt-info'); if(ttInfo) ttInfo.style.display='none';
+  const gruposWA=document.getElementById('grupos-wa-section'); if(gruposWA) gruposWA.style.display='block';
+  window._igMedia = null;
+  window._ttMedia = null;
+  const igAuto = document.getElementById('ig-auto-preview'); if(igAuto) igAuto.style.display='none';
+  const ttAuto = document.getElementById('tt-auto-preview'); if(ttAuto) ttAuto.style.display='none';
+  const igUpPrev = document.getElementById('ig-upload-preview'); if(igUpPrev) igUpPrev.style.display='none';
+  const ttUpPrev = document.getElementById('tt-upload-preview'); if(ttUpPrev) ttUpPrev.style.display='none';
   // Ocultar preview imagen
   const prev=document.getElementById('com-img-preview');
   if(prev) prev.style.display='none';
   _tituloAnterior='';
   document.getElementById('modCom').classList.add('show');
 }
+
+
+// ======================== CANALES ========================
+function toggleCanal(canal) {
+  const el    = document.getElementById('canal-'+canal);
+  const check = document.getElementById('canal-'+canal+'-check');
+  const val   = document.getElementById('canal-'+canal+'-val');
+  const active= val.value === '1';
+
+  const colors = {
+    wa: { bg:'#f0fdf4', border:'#22c55e', check:'#22c55e', text:'#15803d' },
+    ig: { bg:'linear-gradient(135deg,rgba(240,148,51,0.08),rgba(188,24,136,0.08))', border:'#dc2743', check:'linear-gradient(135deg,#f09433,#bc1888)', text:'#9d174d' },
+    tt: { bg:'rgba(1,1,1,0.04)', border:'#010101', check:'#010101', text:'#111827' }
+  };
+
+  if (active) {
+    // Desactivar
+    val.value = '0';
+    el.style.border = '2px solid var(--gray-200)';
+    el.style.background = 'var(--gray-50)';
+    check.style.background = 'var(--gray-200)';
+  } else {
+    // Activar
+    val.value = '1';
+    const c = colors[canal];
+    el.style.border = '2px solid ' + c.border;
+    el.style.background = c.bg;
+    check.style.background = c.check;
+  }
+
+  // Mostrar/ocultar secciones
+  const gruposWA = document.getElementById('grupos-wa-section');
+  const igInfo   = document.getElementById('canal-ig-info');
+  const ttInfo   = document.getElementById('canal-tt-info');
+
+  if(gruposWA) gruposWA.style.display = document.getElementById('canal-wa-val').value==='1' ? 'block':'none';
+  if(igInfo)   igInfo.style.display   = document.getElementById('canal-ig-val').value==='1' ? 'block':'none';
+  if(ttInfo)   ttInfo.style.display   = document.getElementById('canal-tt-val').value==='1' ? 'block':'none';
+
+  // Auto cargar contenido al activar canal
+  const titulo = document.getElementById('com-titulo')?.value?.trim();
+  if(canal==='ig' && document.getElementById('canal-ig-val').value==='1' && titulo) {
+    setTimeout(usarContenidoAutoIG, 300);
+  }
+  if(canal==='tt' && document.getElementById('canal-tt-val').value==='1' && titulo) {
+    setTimeout(usarContenidoAutoTT, 300);
+  }
+}
+
+function getCanalesSeleccionados() {
+  const canales = [];
+  if(document.getElementById('canal-wa-val')?.value==='1') canales.push('WhatsApp');
+  if(document.getElementById('canal-ig-val')?.value==='1') canales.push('Instagram');
+  if(document.getElementById('canal-tt-val')?.value==='1') canales.push('TikTok');
+  return canales;
+}
+// ======================== FIN CANALES ========================
+
+// ======================== INSTAGRAM & TIKTOK ========================
+function usarContenidoAutoIG() {
+  const titulo = document.getElementById('com-titulo').value.trim();
+  const url    = _imgActual || imagenPorTema(titulo);
+  const imgTag = document.getElementById('ig-img-tag');
+  const label  = document.getElementById('ig-img-label');
+  const prev   = document.getElementById('ig-auto-preview');
+  if(imgTag){ imgTag.src = url; imgTag.onerror = ()=>{ imgTag.src='https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80'; }; }
+  if(label)  label.textContent = 'Imagen seleccionada por Zyra IA';
+  if(prev)   prev.style.display = 'block';
+  window._igMedia = { url, tipo:'imagen', fuente:'auto' };
+  document.getElementById('ig-upload-preview').style.display = 'none';
+  showToast('📸 Contenido automático cargado para Instagram','success',2000);
+}
+
+function usarContenidoAutoTT() {
+  const titulo = document.getElementById('com-titulo').value.trim();
+  const url    = _imgActual || imagenPorTema(titulo);
+  const t      = titulo.toLowerCase();
+  const esVideo = t.includes('edificio')||t.includes('video')||t.includes('instalaciones');
+  const prev   = document.getElementById('tt-auto-preview');
+  const icon   = document.getElementById('tt-media-icon');
+  const lbl    = document.getElementById('tt-media-label');
+  if(icon) icon.textContent = esVideo ? '🎥' : '📸';
+  if(lbl)  lbl.textContent  = esVideo ? 'Video detectado — listo para publicar' : 'Imagen detectada — lista para publicar';
+  if(prev) prev.style.display = 'block';
+  window._ttMedia = { url, tipo: esVideo?'video':'imagen', fuente:'auto' };
+  document.getElementById('tt-upload-preview').style.display = 'none';
+  showToast('🎵 Contenido automático cargado para TikTok','success',2000);
+}
+
+function previewUploadIG(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const nameEl = document.getElementById('ig-upload-name');
+  const prevEl = document.getElementById('ig-upload-preview');
+  const autoPrev = document.getElementById('ig-auto-preview');
+  if(nameEl) nameEl.textContent = '📎 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+  if(prevEl) prevEl.style.display = 'block';
+  if(autoPrev) autoPrev.style.display = 'none';
+  window._igMedia = { file, tipo: file.type.startsWith('video')?'video':'imagen', fuente:'manual', nombre: file.name };
+  showToast('📸 Archivo cargado para Instagram: ' + file.name,'success',2000);
+}
+
+function previewUploadTT(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const nameEl = document.getElementById('tt-upload-name');
+  const prevEl = document.getElementById('tt-upload-preview');
+  const autoPrev = document.getElementById('tt-auto-preview');
+  if(nameEl) nameEl.textContent = '📎 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+  if(prevEl) prevEl.style.display = 'block';
+  if(autoPrev) autoPrev.style.display = 'none';
+  window._ttMedia = { file, tipo: file.type.startsWith('video')?'video':'imagen', fuente:'manual', nombre: file.name };
+  showToast('🎵 Archivo cargado para TikTok: ' + file.name,'success',2000);
+}
+// ======================== FIN IG & TT ========================
+
 
 function toggleAllGrp(cb) { document.querySelectorAll('.grp-chk').forEach(c=>c.checked=cb.checked); }
 
@@ -1432,11 +1680,14 @@ function onTituloInput() {
   if(!titulo){
     document.getElementById('com-msg-group').style.display='none';
     document.getElementById('com-img-preview').style.display='none';
+    _tituloAnterior='';
     return;
   }
   clearTimeout(_tituloTimer);
   _tituloTimer=setTimeout(()=>{
-    if(titulo===_tituloAnterior)return;
+    // Siempre actualizar imagen al cambiar el título
+    mostrarImagenIA(titulo);
+    if(titulo===_tituloAnterior) return;
     _tituloAnterior=titulo;
     document.getElementById('com-msg-group').style.display='block';
     mostrarImagenIA(titulo);
@@ -1450,45 +1701,201 @@ function regenerarMsg() {
 }
 
 function generarMsg(titulo) {
-  const msgEl=document.getElementById('com-mensaje');
-  const grupos=[...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value);
-  const prio=document.getElementById('com-prio').value;
-  msgEl.value='✨ Agente Zyra IA generando mensaje...';
-  msgEl.disabled=true;
+  const msgEl  = document.getElementById('com-mensaje');
+  const grupos = [...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value);
+  const prio   = document.getElementById('com-prio').value;
+  msgEl.value  = '✨ Agente Zyra IA generando mensaje...';
+  msgEl.disabled = true;
 
-  setTimeout(()=>{
-    const g=grupos.length>0?grupos.join(' y '):'las comunidades';
-    const fecha=new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'long',year:'numeric'});
-    const prioTxt={normal:'',importante:'⚠️ IMPORTANTE: ',urgente:'🔴 URGENTE: '};
-    const t=titulo.toLowerCase();
-    let cuerpo='';
-    if(t.includes('reunión')||t.includes('reunion')||t.includes('meeting'))
-      cuerpo='Les informamos que se ha programado una reunión. Les solicitamos confirmar su asistencia y estar atentos a los detalles de conexión o lugar.\n\nSu participación es muy importante para nosotros.';
-    else if(t.includes('capacitación')||t.includes('capacitacion')||t.includes('training'))
-      cuerpo='Nos complace informarles sobre una próxima capacitación para potenciar sus habilidades profesionales. Les invitamos a participar activamente en este espacio de aprendizaje.\n\nMayores detalles serán comunicados oportunamente.';
-    else if(t.includes('felicitación')||t.includes('felicitacion')||t.includes('logro'))
-      cuerpo='Es un orgullo compartir este importante logro con toda la comunidad. Esto es el resultado del esfuerzo y trabajo en equipo de todos ustedes.\n\n¡Muchas felicitaciones! 🏆';
-    else if(t.includes('recordatorio'))
-      cuerpo='Les recordamos sobre este tema. Por favor tomar las acciones correspondientes dentro de los plazos establecidos.\n\nSi tienen dudas, contacten a Talento Humano.';
-    else if(t.includes('bienvenida')||t.includes('bienvenido'))
-      cuerpo='Con mucho gusto damos la bienvenida a nuestro nuevo integrante. Estamos seguros de que su talento contribuirá al equipo.\n\n¡Bienvenido/a a bordo! 💙';
-    else
-      cuerpo='Les comunicamos información importante relacionada con el tema indicado. Les solicitamos revisar y tomar las acciones necesarias.\n\nContacten a Talento Humano para consultas.';
+  setTimeout(() => {
+    const g   = grupos.length > 0 ? grupos.join(', ') : 'todas las comunidades';
+    const t   = titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const hoy = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'long',year:'numeric'});
+    const prioEmoji = { normal:'', importante:'⚠️ *IMPORTANTE* ⚠️\n\n', urgente:'🔴 *URGENTE* 🔴\n\n' };
 
-    msgEl.value=prioTxt[prio]+'*'+titulo+'*\n\nEstimados colaboradores de '+g+',\n\n'+cuerpo+'\n\n📅 Fecha: '+fecha+'\n\nAtentamente,\n*Talento Humano · Saludsa* 💙\n\n_Mensaje generado por Agente Zyra IA_';
-    msgEl.disabled=false;
+    let mensaje = '';
+
+    // ── CAMPEONATO / DEPORTE ─────────────────────────────────
+    if(t.includes('campeonato')||t.includes('relampago')||t.includes('torneo')||t.includes('futbol')||t.includes('deporte')||t.includes('deportivo')) {
+      mensaje = `${prioEmoji[prio]||''}⚽ *¡${titulo}!* 🏆
+
+¡Atención, familia Saludsa! 🎉
+
+Ha llegado el momento de demostrar tu espíritu deportivo y sacar lo mejor de ti. Te invitamos a participar en nuestro *${titulo}*, un evento diseñado para fortalecer el trabajo en equipo, la amistad y la pasión por el deporte. 💪
+
+🗓 *Fecha:* ${hoy}
+📍 *Dirigido a:* ${g}
+🏅 *Modalidad:* Competencia por equipos
+
+📌 *¿Cómo participar?*
+1️⃣ Forma tu equipo con tus compañeros
+2️⃣ Inscríbete antes de la fecha límite
+3️⃣ ¡Prepárate para darlo todo en la cancha!
+
+🎯 Recuerda: mientras más equipos se inscriban, ¡más emocionante será la competencia!
+
+_¡Inscribe a tu equipo y que gane el mejor!_ 🥇
+
+*Talento Humano · Saludsa* 💙`;
+
+    // ── DÍA DE LA MADRE ──────────────────────────────────────
+    } else if(t.includes('madre')||t.includes('mama')||t.includes('mujer')||t.includes('inscripcion')) {
+      mensaje = `${prioEmoji[prio]||''}💐 *¡${titulo}!* 💐
+
+Estimados colaboradores de ${g},
+
+En Saludsa queremos celebrar y honrar a todas las mujeres increíbles que forman parte de nuestra familia. 👩‍💼💙
+
+Este es un momento especial para reconocer su dedicación, esfuerzo y amor en cada cosa que hacen.
+
+🌸 *Un mensaje para todas las mamás de nuestra comunidad:*
+_Gracias por ser la inspiración que mueve el mundo. Su fortaleza, amor y entrega hacen que todo valga la pena._
+
+📅 *Fecha de celebración:* ${hoy}
+🎁 *Dirigido a:* ${g}
+
+¡Las invitamos a ser parte de esta celebración especial! 🎉
+
+Con todo el cariño,
+*Talento Humano · Saludsa* 💙`;
+
+    // ── REUNIÓN ───────────────────────────────────────────────
+    } else if(t.includes('reunion')||t.includes('meeting')||t.includes('sesion')||t.includes('asamblea')) {
+      mensaje = `${prioEmoji[prio]||''}📋 *${titulo}*
+
+Estimados colaboradores de ${g},
+
+Les convocamos a la siguiente reunión institucional. Su presencia es fundamental para alinear objetivos y tomar decisiones importantes para el equipo.
+
+📅 *Fecha:* ${hoy}
+👥 *Participantes:* ${g}
+📌 *Modalidad:* A confirmar por los organizadores
+
+📎 *Por favor tener en cuenta:*
+• Confirmar asistencia a la brevedad posible
+• Preparar los temas asignados previamente
+• Puntualidad en el ingreso
+
+_Su participación activa hace la diferencia._ 💼
+
+*Talento Humano · Saludsa* 💙`;
+
+    // ── CAPACITACIÓN ─────────────────────────────────────────
+    } else if(t.includes('capacitacion')||t.includes('training')||t.includes('taller')||t.includes('curso')||t.includes('formacion')) {
+      mensaje = `${prioEmoji[prio]||''}📚 *¡${titulo}!* 🎓
+
+Estimados colaboradores de ${g},
+
+¡Tenemos una excelente oportunidad de crecimiento para ti! 🌟
+
+Te invitamos a participar en nuestra próxima capacitación, diseñada especialmente para potenciar tus habilidades y fortalecer tu desarrollo profesional dentro de Saludsa.
+
+📅 *Fecha:* ${hoy}
+🎯 *Dirigido a:* ${g}
+⏱ *Duración:* A confirmar
+
+💡 *¿Qué aprenderás?*
+Habilidades prácticas y conocimientos actualizados que marcarán la diferencia en tu trabajo diario.
+
+📌 *Inscríbete antes de que se agoten los cupos.* Los cupos son limitados.
+
+¡Invierte en tu crecimiento! 🚀
+
+*Talento Humano · Saludsa* 💙`;
+
+    // ── BIENVENIDA ────────────────────────────────────────────
+    } else if(t.includes('bienvenida')||t.includes('bienvenido')||t.includes('ingreso')||t.includes('nuevo')) {
+      mensaje = `${prioEmoji[prio]||''}🎉 *¡${titulo}!* 🎉
+
+Querida comunidad de ${g},
+
+¡Tenemos una excelente noticia! Un nuevo talento se suma a nuestra familia Saludsa y queremos que sean los primeros en darle la bienvenida. 💙
+
+🌟 Nos alegra enormemente contar con personas comprometidas y talentosas que hacen que nuestra organización crezca cada día.
+
+Por favor, extiendan una cálida bienvenida a nuestro/a nuevo/a colega. Recuerden que todos fuimos nuevos alguna vez, y el apoyo del equipo marca la diferencia.
+
+_¡Juntos somos más fuertes!_ 💪
+
+*Talento Humano · Saludsa* 💙`;
+
+    // ── RECORDATORIO ─────────────────────────────────────────
+    } else if(t.includes('recordatorio')||t.includes('reminder')||t.includes('aviso')||t.includes('importante')) {
+      mensaje = `${prioEmoji[prio]||''}⏰ *Recordatorio: ${titulo}*
+
+Estimados colaboradores de ${g},
+
+Por medio del presente, les recordamos la importancia del siguiente tema. Les solicitamos prestar atención y tomar las acciones necesarias dentro de los plazos establecidos.
+
+📅 *Fecha límite:* ${hoy}
+👥 *Aplica para:* ${g}
+
+📌 *Acciones requeridas:*
+• Revisar la información adjunta
+• Completar los procesos pendientes
+• Confirmar recepción de este mensaje
+
+⚠️ _Si tienes dudas o necesitas apoyo, comunícate con Talento Humano._
+
+*Talento Humano · Saludsa* 💙`;
+
+    // ── EDIFICIO / INSTALACIONES ──────────────────────────────
+    } else if(t.includes('edificio')||t.includes('instalaciones')||t.includes('oficina')||t.includes('sede')) {
+      mensaje = `${prioEmoji[prio]||''}🏢 *${titulo}*
+
+Estimados colaboradores de ${g},
+
+¡Tenemos novedades emocionantes para compartirles! 🎉
+
+Nos complace informarles sobre las últimas novedades de nuestras instalaciones. Estos cambios reflejan el compromiso de Saludsa con brindar los mejores espacios de trabajo para su equipo.
+
+📅 *Fecha:* ${hoy}
+📍 *Aplica para:* ${g}
+
+🔍 *Detalles importantes:*
+• Revisa el contenido adjunto para conocer todos los detalles
+• Cualquier consulta, comunícate con Talento Humano
+
+_¡Seguimos creciendo juntos!_ 🚀
+
+*Talento Humano · Saludsa* 💙`;
+
+    // ── GENERAL ───────────────────────────────────────────────
+    } else {
+      mensaje = `${prioEmoji[prio]||''}📢 *${titulo}*
+
+Estimados colaboradores de ${g},
+
+Por medio del presente comunicado, queremos compartir información importante relacionada con el tema indicado.
+
+Les solicitamos revisar este mensaje y tomar las acciones correspondientes según aplique a su área y responsabilidades.
+
+📅 *Fecha:* ${hoy}
+👥 *Dirigido a:* ${g}
+
+📌 *Si tienes preguntas o necesitas más información, no dudes en comunicarte con el equipo de Talento Humano. Estamos aquí para apoyarte.*
+
+_¡Gracias por tu atención y compromiso con Saludsa!_ 💙
+
+*Talento Humano · Saludsa* 💙`;
+    }
+
+    msgEl.value   = mensaje;
+    msgEl.disabled= false;
     showToast('✨ Mensaje generado por Zyra IA','success',2000);
-  },800);
+  }, 800);
 }
 
 async function enviarComunicado() {
   const titulo  = document.getElementById('com-titulo').value.trim();
   const mensaje = document.getElementById('com-mensaje')?.value.trim()||'';
   const prio    = document.getElementById('com-prio').value;
-  const grupos  = [...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value);
+  const grupos   = [...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value);
+  const canales  = getCanalesSeleccionados();
 
   if(!titulo){showToast('Ingresa un título','warning');return;}
-  if(!grupos.length){showToast('Selecciona al menos un grupo destinatario','warning');return;}
+  if(!canales.length){showToast('Selecciona al menos un canal de publicación','warning');return;}
+  if(canales.includes('WhatsApp')&&!grupos.length){showToast('Selecciona al menos un grupo de WhatsApp','warning');return;}
   if(!mensaje){
     showToast('El agente IA está generando el mensaje, espera un momento...','info',2000);
     generarMsg(titulo);
@@ -1498,14 +1905,14 @@ async function enviarComunicado() {
 
   const comId='com_'+Date.now();
   const imgUrl=_imgActual||imagenPorTema(titulo);
-  const com={_id:comId,titulo,mensaje,grupos,prio,fecha:'',estado:'pendiente',creadoEn:now(),imagen:imgUrl};
+  const com={_id:comId,titulo,mensaje,grupos,canales,prio,fecha:'',estado:'pendiente',creadoEn:now(),imagen:imgUrl};
   coms.unshift(com);
   closeModal('modCom');
   renderComs();
   updateComBadge();
 
   // Enviar al n8n → correo de verificación al admin
-  const payload={titulo,mensaje,imagen:imgUrl,media_tipo:'imagen',grupos,prioridad:prio,com_id:comId,fuente:'zyra_comunicados'};
+  const payload={titulo,mensaje,imagen:imgUrl,media_tipo:'imagen',grupos,canales,prioridad:prio,com_id:comId,fuente:'zyra_comunicados'};
   log('dashLog','info','[comunicado] Enviando "'+titulo+'" al admin para verificación...');
   const res=await callN8n(wh.com, payload);
   if(res.ok){
@@ -1538,22 +1945,33 @@ function abrirModalProgramacion(comId, titulo) {
 }
 
 async function enviarAhoraAprobado() {
-  const comId = window._comAprobadoId;
-  const com   = coms.find(c=>c._id===comId);
+  const comId  = window._comAprobadoId;
+  const titulo = window._comAprobadoTitulo || '';
+  const com    = coms.find(c=>c._id===comId);
   if(com) com.estado='enviado';
 
-  const payload = {
-    com_id: comId,
-    tipo: 'inmediato',
-    titulo: window._comAprobadoTitulo,
-    imagen: com?.imagen||'',
-    grupos: com?.grupos||[]
-  };
-  const res = await callN8n(wh.com.replace('zyra-comunicado','zyra-com-aprobar')+'?id='+comId+'&tipo=inmediato', {});
+  const imagen = com?.imagen || '';
+  const grupos = com?.grupos || [];
+  const numero = '593994959731'; // grupo ConcursoIA-Zyra
+
+  // URL directa al webhook de aprobar
+  const urlAprobar = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
+    + '?id='     + encodeURIComponent(comId)
+    + '&tipo=inmediato'
+    + '&titulo=' + encodeURIComponent(titulo)
+    + '&grupos=' + encodeURIComponent(grupos.join(','))
+    + '&media='  + encodeURIComponent(imagen)
+    + '&numero=' + numero;
+
+  try {
+    await fetch(urlAprobar, { method:'GET', mode:'no-cors' });
+  } catch(e) { console.log('WA fetch:', e); }
+
   closeModal('modProgramar');
   renderComs();
-  showToast('✅ Comunicado enviado inmediatamente a los grupos','success',5000);
-  addNotif({nombre:'Comunicado',accion:'ALTA',canal:'WhatsApp Grupos',destinatario:(com?.grupos||[]).join(', '),detalle:window._comAprobadoTitulo,estado:'Enviado'});
+  showToast('✅ Comunicado "'+titulo+'" enviado a los grupos','success',5000);
+  addNotif({nombre:'Comunicado: '+titulo, accion:'ALTA', canal:'WhatsApp Grupos', destinatario:grupos.join(', '), detalle:'Aprobado y enviado', estado:'Enviado'});
+  updateMetrics();
 }
 
 async function enviarProgramadoAprobado() {
@@ -1563,7 +1981,15 @@ async function enviarProgramadoAprobado() {
   const com   = coms.find(c=>c._id===comId);
   if(com){ com.estado='programado'; com.fecha=fecha; }
 
-  await callN8n(wh.com.replace('zyra-comunicado','zyra-com-aprobar')+'?id='+comId+'&tipo=programado&fecha='+encodeURIComponent(fecha), {});
+  const urlProg = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
+    + '?id='     + encodeURIComponent(comId)
+    + '&tipo=programado'
+    + '&fecha='  + encodeURIComponent(fecha)
+    + '&titulo=' + encodeURIComponent(window._comAprobadoTitulo||'')
+    + '&grupos=' + encodeURIComponent((com?.grupos||[]).join(','))
+    + '&media='  + encodeURIComponent(com?.imagen||'')
+    + '&numero=593994959731';
+  try { await fetch(urlProg, { method:'GET', mode:'no-cors' }); } catch(e) {}
   closeModal('modProgramar');
   renderComs();
   showToast('📅 Comunicado programado para '+new Date(fecha).toLocaleString('es-EC'),'success',5000);
@@ -1573,82 +1999,131 @@ async function enviarProgramadoAprobado() {
 
 // Mapa de imágenes por tema — carpeta SharePoint Saludsa
 const IMAGENES_SHAREPOINT = {
-  'campeonato':    'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'relampago':     'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'relámpago':     'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'torneo':        'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'futbol':        'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'fútbol':        'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'deporte':       'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'madre':         'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
-  'mama':          'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
-  'mamá':          'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
-  'mujer':         'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
-  'inscripcion':   'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
-  'inscripción':   'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
-  'edificio':      'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'instalaciones': 'https://raw.githubusercontent.com/katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
-  'reunion':       'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
-  'reunión':       'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
-  'capacitacion':  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
-  'capacitación':  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
-  'felicitacion':  'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80',
-  'felicitación':  'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80',
-  'bienvenida':    'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80',
-  'recordatorio':  'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&q=80',
-  'default':       'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80'
+  // ── IMÁGENES EN GITHUB (material propio Saludsa) ──────────
+  'campeonato':    { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,football,trophy' },
+  'relampago':     { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,football,trophy' },
+  'relámpago':     { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,football,trophy' },
+  'torneo':        { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,competition' },
+  'futbol':        { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'football,sport' },
+  'fútbol':        { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'football,sport' },
+  'deporte':       { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,team' },
+  'madre':         { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'mother,flowers,love' },
+  'mama':          { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'mother,flowers,love' },
+  'mamá':          { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'mother,flowers,love' },
+  'mujer':         { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'woman,empowerment' },
+  'inscripcion':   { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'registration,event' },
+  'inscripción':   { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'registration,event' },
+  // ── TEMAS SIN IMAGEN EN GITHUB (usa Unsplash automático) ──
+  'reunion':       { src: null, fallback: 'meeting,team,office' },
+  'reunión':       { src: null, fallback: 'meeting,team,office' },
+  'capacitacion':  { src: null, fallback: 'training,learning,education' },
+  'capacitación':  { src: null, fallback: 'training,learning,education' },
+  'taller':        { src: null, fallback: 'workshop,training,people' },
+  'curso':         { src: null, fallback: 'education,course,learning' },
+  'bienvenida':    { src: null, fallback: 'welcome,team,handshake' },
+  'bienvenido':    { src: null, fallback: 'welcome,team,handshake' },
+  'nuevo':         { src: null, fallback: 'new,start,team' },
+  'recordatorio':  { src: null, fallback: 'reminder,calendar,notes' },
+  'aviso':         { src: null, fallback: 'notice,announcement,office' },
+  'urgente':       { src: null, fallback: 'urgent,alert,important' },
+  'felicitacion':  { src: null, fallback: 'celebration,success,team' },
+  'felicitación':  { src: null, fallback: 'celebration,success,team' },
+  'logro':         { src: null, fallback: 'achievement,success,trophy' },
+  'reconocimiento':{ src: null, fallback: 'recognition,award,people' },
+  'premio':        { src: null, fallback: 'award,prize,trophy' },
+  'cumpleanos':    { src: null, fallback: 'birthday,celebration,cake' },
+  'cumpleaños':    { src: null, fallback: 'birthday,celebration,cake' },
+  'navidad':       { src: null, fallback: 'christmas,holiday,celebration' },
+  'vacaciones':    { src: null, fallback: 'vacation,holiday,beach' },
+  'edificio':      { src: null, fallback: 'building,office,architecture' },
+  'instalaciones': { src: null, fallback: 'facility,office,modern' },
+  'salud':         { src: null, fallback: 'health,medical,wellness' },
+  'beneficio':     { src: null, fallback: 'benefit,people,team' },
 };
 
 let _imgActual = '';
 let _imgIndex  = 0;
 
-function imagenPorTema(titulo, tituloNorm) {
+function imagenPorTema(titulo) {
   const t  = (titulo||'').toLowerCase();
-  const tn = tituloNorm || t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  for(const[k,v] of Object.entries(IMAGENES_SHAREPOINT)){
-    if(k==='default') continue;
-    const kn = k.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    if(t.includes(k) || tn.includes(kn) || t.includes(kn) || tn.includes(k)) return v;
+  const tn = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  for(const[k, entry] of Object.entries(IMAGENES_SHAREPOINT)) {
+    const kn = k.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if(t.includes(k) || tn.includes(kn)) {
+      // Si tiene imagen en GitHub → usarla con fallback a Unsplash
+      if(entry.src) return entry.src;
+      // Si no tiene → usar Unsplash con keywords del tema
+      return `https://images.unsplash.com/800x400/?${encodeURIComponent(entry.fallback)}&q=80`;
+    }
   }
-  return IMAGENES_SHAREPOINT['default'];
+  // Sin coincidencia → Unsplash con palabras del título
+  const keyword = encodeURIComponent(titulo.split(' ').slice(0,3).join(','));
+  return `https://images.unsplash.com/800x400/?${keyword},corporate&q=80`;
 }
 
 function mostrarImagenIA(titulo) {
-  // Normalizar tildes para comparación
-  const tituloNorm = titulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const url = imagenPorTema(titulo, tituloNorm);
-  _imgActual = url;
-  _imgIndex  = 0;
+  const t  = (titulo||'').toLowerCase();
+  const tn = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  // Buscar entrada en el mapa
+  let entry = null, temaLabel = 'Corporativa general';
+  for(const[k, e] of Object.entries(IMAGENES_SHAREPOINT)) {
+    const kn = k.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if(t.includes(k) || tn.includes(kn)) { entry = e; temaLabel = k.charAt(0).toUpperCase()+k.slice(1); break; }
+  }
+
   const prev  = document.getElementById('com-img-preview');
   const img   = document.getElementById('com-img-tag');
   const label = document.getElementById('com-img-label');
-  if(!prev||!img) return;
-  img.src = url;
-  img.onerror = () => {
-    img.src = IMAGENES_SHAREPOINT['default'];
-  };
-  // Detectar tema para el label
-  const t=titulo.toLowerCase();
-  let tema='Corporativa general';
-  for(const k of Object.keys(IMAGENES_SHAREPOINT)){
-    if(k!=='default'&&t.includes(k)){tema=k.charAt(0).toUpperCase()+k.slice(1);break;}
+  if(!prev || !img) return;
+
+  // URL inicial
+  let urlInicial;
+  if(entry && entry.src) {
+    urlInicial = entry.src;
+  } else if(entry) {
+    urlInicial = `https://images.unsplash.com/800x400/?${encodeURIComponent(entry.fallback)}&q=80`;
+  } else {
+    const kw = encodeURIComponent(titulo.split(' ').slice(0,3).join(','));
+    urlInicial = `https://images.unsplash.com/800x400/?${kw},corporate&q=80`;
   }
-  label.textContent='Tema detectado: '+tema;
-  prev.style.display='block';
-  showToast('🤖 Imagen seleccionada por Zyra IA','info',2000);
+
+  img.src = urlInicial;
+  _imgActual = urlInicial;
+  _imgIndex  = 0;
+
+  // Si GitHub falla → automáticamente usa Unsplash del tema
+  img.onerror = () => {
+    const kw = entry?.fallback || encodeURIComponent(titulo.split(' ').slice(0,2).join(','));
+    const fallbackUrl = `https://images.unsplash.com/800x400/?${encodeURIComponent(kw)}&q=80`;
+    img.src    = fallbackUrl;
+    _imgActual = fallbackUrl;
+    if(label) label.textContent = '🌐 Imagen web: ' + temaLabel;
+    img.onerror = null;
+  };
+
+  if(label) label.textContent = entry?.src ? '📁 GitHub: ' + temaLabel : '🌐 Web: ' + temaLabel;
+  prev.style.display = 'block';
 }
 
 function cambiarImagen() {
-  // Rotar entre imágenes disponibles
-  const keys=Object.keys(IMAGENES_SHAREPOINT).filter(k=>k!=='default');
-  _imgIndex=(_imgIndex+1)%keys.length;
-  const url=IMAGENES_SHAREPOINT[keys[_imgIndex]];
-  _imgActual=url;
-  const img=document.getElementById('com-img-tag');
-  const label=document.getElementById('com-img-label');
-  if(img){img.src=url;}
-  if(label){label.textContent='Imagen: '+keys[_imgIndex].charAt(0).toUpperCase()+keys[_imgIndex].slice(1);}
-  showToast('Imagen cambiada','info',1500);
+  // Lista de imágenes disponibles (únicas, sin duplicados)
+  const IMAGENES_UNICAS = [
+    { url: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg', label: 'Campeonato Relámpago 2026' },
+    { url: 'https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=800&q=80', label: 'Día de la Madre' },
+    { url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80', label: 'Reunión corporativa' },
+    { url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80', label: 'Capacitación' },
+    { url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80', label: 'Corporativa general' },
+  ];
+  _imgIndex = (_imgIndex + 1) % IMAGENES_UNICAS.length;
+  const item = IMAGENES_UNICAS[_imgIndex];
+  _imgActual = item.url;
+  const img   = document.getElementById('com-img-tag');
+  const label = document.getElementById('com-img-label');
+  if(img)  { img.src = item.url; img.onerror = ()=>{ img.src='https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80'; }; }
+  if(label){ label.textContent = 'Imagen: ' + item.label; }
+  showToast('Imagen cambiada: ' + item.label, 'info', 1500);
 }
 
 // Legacy - kept for compatibility
