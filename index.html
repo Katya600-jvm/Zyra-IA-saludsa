@@ -1887,41 +1887,65 @@ _¡Gracias por tu atención y compromiso con Saludsa!_ 💙
 }
 
 async function enviarComunicado() {
+  // Evitar doble envío
+  if(window._enviandoComunicado) return;
+  window._enviandoComunicado = true;
+  setTimeout(()=>{ window._enviandoComunicado = false; }, 5000);
+
   const titulo  = document.getElementById('com-titulo').value.trim();
   const mensaje = document.getElementById('com-mensaje')?.value.trim()||'';
   const prio    = document.getElementById('com-prio').value;
-  const grupos   = [...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value);
-  const canales  = getCanalesSeleccionados();
+  const grupos  = [...document.querySelectorAll('.grp-chk:checked')].map(c=>c.value);
+  const canales = getCanalesSeleccionados();
 
-  if(!titulo){showToast('Ingresa un título','warning');return;}
-  if(!canales.length){showToast('Selecciona al menos un canal de publicación','warning');return;}
-  if(canales.includes('WhatsApp')&&!grupos.length){showToast('Selecciona al menos un grupo de WhatsApp','warning');return;}
-  if(!mensaje){
+  if(!titulo){ showToast('Ingresa un título','warning'); window._enviandoComunicado=false; return; }
+  if(!canales.length){ showToast('Selecciona al menos un canal','warning'); window._enviandoComunicado=false; return; }
+  if(canales.includes('WhatsApp')&&!grupos.length){ showToast('Selecciona al menos un grupo de WhatsApp','warning'); window._enviandoComunicado=false; return; }
+
+  if(!mensaje) {
     showToast('El agente IA está generando el mensaje, espera un momento...','info',2000);
     generarMsg(titulo);
-    setTimeout(enviarComunicado,1500);
+    window._enviandoComunicado = false;
+    setTimeout(enviarComunicado, 1800);
     return;
   }
 
-  const comId='com_'+Date.now();
-  const imgUrl=_imgActual||imagenPorTema(titulo);
-  const com={_id:comId,titulo,mensaje,grupos,canales,prio,fecha:'',estado:'pendiente',creadoEn:now(),imagen:imgUrl};
+  const comId  = 'com_' + Date.now();
+  const imgUrl = _imgActual || imagenPorTema(titulo);
+
+  const com = {
+    _id: comId, titulo, mensaje, grupos, canales,
+    prio, fecha: '', estado: 'pendiente',
+    creadoEn: now(), imagen: imgUrl
+  };
   coms.unshift(com);
   closeModal('modCom');
   renderComs();
   updateComBadge();
 
-  // Enviar al n8n → correo de verificación al admin
-  const payload={titulo,mensaje,imagen:imgUrl,media_tipo:'imagen',grupos,canales,prioridad:prio,com_id:comId,fuente:'zyra_comunicados'};
-  log('dashLog','info','[comunicado] Enviando "'+titulo+'" al admin para verificación...');
-  const res=await callN8n(wh.com, payload);
-  if(res.ok){
+  // Payload con imagen incluida
+  const payload = {
+    titulo, mensaje,
+    imagen:      imgUrl,
+    archivo_url: imgUrl,
+    media_tipo:  'imagen',
+    grupos, canales,
+    prioridad:   prio,
+    com_id:      comId,
+    fuente:      'zyra_comunicados'
+  };
+
+  log('dashLog','info','[comunicado] Enviando "'+titulo+'" al admin...');
+  const res = await callN8n(wh.com, payload);
+
+  if(res.ok) {
     showToast('✓ "'+titulo+'" enviado a mdavila@saludsa.com.ec para verificación','success',5000);
-    log('dashLog','ok','[comunicado] Correo de verificación enviado al administrador');
+    log('dashLog','ok','[comunicado] Correo enviado al administrador');
   } else {
     showToast('⚠ Comunicado guardado. Verifica la conexión con n8n.','warning',5000);
-    log('dashLog','warn','[comunicado] Error enviando correo: '+res.error);
+    log('dashLog','warn','[comunicado] Error: '+res.error);
   }
+  window._enviandoComunicado = false;
 }
 
 // Llamado desde URL cuando el admin aprueba
@@ -1945,100 +1969,118 @@ function abrirModalProgramacion(comId, titulo) {
 }
 
 async function enviarAhoraAprobado() {
-  const comId  = window._comAprobadoId;
+  const comId  = window._comAprobadoId || '';
   const titulo = window._comAprobadoTitulo || '';
   const com    = coms.find(c=>c._id===comId);
   if(com) com.estado='enviado';
 
-  const imagen = com?.imagen || '';
-  const grupos = com?.grupos || [];
-  const numero = '593994959731'; // grupo ConcursoIA-Zyra
+  const mensaje = com?.mensaje || '';
+  const imagen  = com?.imagen  || _imgActual || '';
+  const grupos  = com?.grupos  || [];
 
-  // URL directa al webhook de aprobar
-  const urlAprobar = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
-    + '?id='     + encodeURIComponent(comId)
+  // Usar siempre el Group ID de ConcursoIA-Zyra
+  const grupoId = '120363425362688531@g.us';
+
+  const url = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
+    + '?id='      + encodeURIComponent(comId)
     + '&tipo=inmediato'
-    + '&titulo=' + encodeURIComponent(titulo)
-    + '&grupos=' + encodeURIComponent(grupos.join(','))
-    + '&media='  + encodeURIComponent(imagen)
-    + '&numero=' + numero;
+    + '&titulo='  + encodeURIComponent(titulo)
+    + '&mensaje=' + encodeURIComponent(mensaje.substring(0,500))
+    + '&grupos='  + encodeURIComponent(grupos.join(','))
+    + '&media='   + encodeURIComponent(imagen)
+    + '&numero='  + encodeURIComponent(grupoId);
 
   try {
-    await fetch(urlAprobar, { method:'GET', mode:'no-cors' });
-  } catch(e) { console.log('WA fetch:', e); }
+    await fetch(url, { method: 'GET', mode: 'no-cors' });
+  } catch(e) { console.log('fetch error:', e); }
 
   closeModal('modProgramar');
   renderComs();
-  showToast('✅ Comunicado "'+titulo+'" enviado a los grupos','success',5000);
-  addNotif({nombre:'Comunicado: '+titulo, accion:'ALTA', canal:'WhatsApp Grupos', destinatario:grupos.join(', '), detalle:'Aprobado y enviado', estado:'Enviado'});
+  showToast('✅ Comunicado "'+titulo+'" enviado al grupo de WhatsApp','success',5000);
+  addNotif({nombre:'Comunicado: '+titulo, accion:'ALTA', canal:'WhatsApp ConcursoIA-Zyra', destinatario:grupoId, detalle:'Aprobado y enviado', estado:'Enviado'});
   updateMetrics();
 }
 
 async function enviarProgramadoAprobado() {
-  const fecha = document.getElementById('prog-fecha').value;
-  if(!fecha){showToast('Selecciona la fecha y hora','warning');return;}
-  const comId = window._comAprobadoId;
-  const com   = coms.find(c=>c._id===comId);
+  const fecha  = document.getElementById('prog-fecha').value;
+  if(!fecha){ showToast('Selecciona la fecha y hora','warning'); return; }
+  const comId  = window._comAprobadoId || '';
+  const titulo = window._comAprobadoTitulo || '';
+  const com    = coms.find(c=>c._id===comId);
   if(com){ com.estado='programado'; com.fecha=fecha; }
 
-  const urlProg = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
-    + '?id='     + encodeURIComponent(comId)
+  const mensaje = com?.mensaje || '';
+  const imagen  = com?.imagen  || _imgActual || '';
+  const grupos  = com?.grupos  || [];
+  const grupoId = '120363425362688531@g.us';
+
+  const url = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
+    + '?id='      + encodeURIComponent(comId)
     + '&tipo=programado'
-    + '&fecha='  + encodeURIComponent(fecha)
-    + '&titulo=' + encodeURIComponent(window._comAprobadoTitulo||'')
-    + '&grupos=' + encodeURIComponent((com?.grupos||[]).join(','))
-    + '&media='  + encodeURIComponent(com?.imagen||'')
-    + '&numero=593994959731';
-  try { await fetch(urlProg, { method:'GET', mode:'no-cors' }); } catch(e) {}
+    + '&fecha='   + encodeURIComponent(fecha)
+    + '&titulo='  + encodeURIComponent(titulo)
+    + '&mensaje=' + encodeURIComponent(mensaje.substring(0,500))
+    + '&grupos='  + encodeURIComponent(grupos.join(','))
+    + '&media='   + encodeURIComponent(imagen)
+    + '&numero='  + encodeURIComponent(grupoId);
+
+  try {
+    await fetch(url, { method: 'GET', mode: 'no-cors' });
+  } catch(e) { console.log('fetch error:', e); }
+
   closeModal('modProgramar');
   renderComs();
   showToast('📅 Comunicado programado para '+new Date(fecha).toLocaleString('es-EC'),'success',5000);
-  addNotif({nombre:'Comunicado',accion:'ALTA',canal:'WhatsApp Grupos',destinatario:(com?.grupos||[]).join(', '),detalle:'Programado: '+window._comAprobadoTitulo,estado:'Programado'});
+  addNotif({nombre:'Comunicado: '+titulo, accion:'ALTA', canal:'WhatsApp ConcursoIA-Zyra', destinatario:grupoId, detalle:'Programado: '+fecha, estado:'Programado'});
+  updateMetrics();
 }
 
 
 // Mapa de imágenes por tema — carpeta SharePoint Saludsa
 const IMAGENES_SHAREPOINT = {
-  // ── IMÁGENES EN GITHUB (material propio Saludsa) ──────────
-  'campeonato':    { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,football,trophy' },
-  'relampago':     { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,football,trophy' },
-  'relámpago':     { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,football,trophy' },
-  'torneo':        { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,competition' },
-  'futbol':        { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'football,sport' },
-  'fútbol':        { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'football,sport' },
-  'deporte':       { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',  fallback: 'sport,team' },
-  'madre':         { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'mother,flowers,love' },
-  'mama':          { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'mother,flowers,love' },
-  'mamá':          { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'mother,flowers,love' },
-  'mujer':         { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'woman,empowerment' },
-  'inscripcion':   { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'registration,event' },
-  'inscripción':   { src: 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',            fallback: 'registration,event' },
-  // ── TEMAS SIN IMAGEN EN GITHUB (usa Unsplash automático) ──
-  'reunion':       { src: null, fallback: 'meeting,team,office' },
-  'reunión':       { src: null, fallback: 'meeting,team,office' },
-  'capacitacion':  { src: null, fallback: 'training,learning,education' },
-  'capacitación':  { src: null, fallback: 'training,learning,education' },
-  'taller':        { src: null, fallback: 'workshop,training,people' },
-  'curso':         { src: null, fallback: 'education,course,learning' },
-  'bienvenida':    { src: null, fallback: 'welcome,team,handshake' },
-  'bienvenido':    { src: null, fallback: 'welcome,team,handshake' },
-  'nuevo':         { src: null, fallback: 'new,start,team' },
-  'recordatorio':  { src: null, fallback: 'reminder,calendar,notes' },
-  'aviso':         { src: null, fallback: 'notice,announcement,office' },
-  'urgente':       { src: null, fallback: 'urgent,alert,important' },
-  'felicitacion':  { src: null, fallback: 'celebration,success,team' },
-  'felicitación':  { src: null, fallback: 'celebration,success,team' },
-  'logro':         { src: null, fallback: 'achievement,success,trophy' },
-  'reconocimiento':{ src: null, fallback: 'recognition,award,people' },
-  'premio':        { src: null, fallback: 'award,prize,trophy' },
-  'cumpleanos':    { src: null, fallback: 'birthday,celebration,cake' },
-  'cumpleaños':    { src: null, fallback: 'birthday,celebration,cake' },
-  'navidad':       { src: null, fallback: 'christmas,holiday,celebration' },
-  'vacaciones':    { src: null, fallback: 'vacation,holiday,beach' },
-  'edificio':      { src: null, fallback: 'building,office,architecture' },
-  'instalaciones': { src: null, fallback: 'facility,office,modern' },
-  'salud':         { src: null, fallback: 'health,medical,wellness' },
-  'beneficio':     { src: null, fallback: 'benefit,people,team' },
+  'campeonato':    'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'relampago':     'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'relámpago':     'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'torneo':        'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'futbol':        'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'fútbol':        'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'deporte':       'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg',
+  'madre':         'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'mama':          'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'mamá':          'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'mujer':         'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'inscripcion':   'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png',
+  'nino':          'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80',
+  'niño':          'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80',
+  'ninos':         'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80',
+  'niños':         'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80',
+  'padre':         'https://images.unsplash.com/photo-1559036397-bbe36fd038c5?w=800&q=80',
+  'papa':          'https://images.unsplash.com/photo-1559036397-bbe36fd038c5?w=800&q=80',
+  'papá':          'https://images.unsplash.com/photo-1559036397-bbe36fd038c5?w=800&q=80',
+  'reunion':       'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
+  'reunión':       'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
+  'capacitacion':  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
+  'capacitación':  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
+  'taller':        'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
+  'bienvenida':    'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80',
+  'bienvenido':    'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80',
+  'recordatorio':  'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800&q=80',
+  'urgente':       'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
+  'felicitacion':  'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80',
+  'felicitación':  'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80',
+  'logro':         'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80',
+  'premio':        'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800&q=80',
+  'cumpleanos':    'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80',
+  'cumpleaños':    'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80',
+  'navidad':       'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?w=800&q=80',
+  'vacaciones':    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+  'edificio':      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80',
+  'instalaciones': 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80',
+  'salud':         'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80',
+  'amor':          'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&q=80',
+  'halloween':     'https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?w=800&q=80',
+  'aniversario':   'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80',
+  'default':       'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80'
 };
 
 let _imgActual = '';
@@ -2046,65 +2088,87 @@ let _imgIndex  = 0;
 
 function imagenPorTema(titulo) {
   const t  = (titulo||'').toLowerCase();
-  const tn = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
-
-  for(const[k, entry] of Object.entries(IMAGENES_SHAREPOINT)) {
-    const kn = k.normalize('NFD').replace(/[̀-ͯ]/g, '');
-    if(t.includes(k) || tn.includes(kn)) {
-      // Si tiene imagen en GitHub → usarla con fallback a Unsplash
-      if(entry.src) return entry.src;
-      // Si no tiene → usar Unsplash con keywords del tema
-      return `https://images.unsplash.com/800x400/?${encodeURIComponent(entry.fallback)}&q=80`;
-    }
+  const tn = t.normalize('NFD').replace(/[̀-ͯ]/g,'');
+  for(const[k,v] of Object.entries(IMAGENES_SHAREPOINT)) {
+    if(k==='default') continue;
+    const kn = k.normalize('NFD').replace(/[̀-ͯ]/g,'');
+    if(t.includes(k)||tn.includes(kn)) return v;
   }
-  // Sin coincidencia → Unsplash con palabras del título
-  const keyword = encodeURIComponent(titulo.split(' ').slice(0,3).join(','));
-  return `https://images.unsplash.com/800x400/?${keyword},corporate&q=80`;
+  return IMAGENES_SHAREPOINT['default'];
 }
 
 function mostrarImagenIA(titulo) {
-  const t  = (titulo||'').toLowerCase();
-  const tn = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
-
-  // Buscar entrada en el mapa
-  let entry = null, temaLabel = 'Corporativa general';
-  for(const[k, e] of Object.entries(IMAGENES_SHAREPOINT)) {
-    const kn = k.normalize('NFD').replace(/[̀-ͯ]/g, '');
-    if(t.includes(k) || tn.includes(kn)) { entry = e; temaLabel = k.charAt(0).toUpperCase()+k.slice(1); break; }
-  }
-
   const prev  = document.getElementById('com-img-preview');
   const img   = document.getElementById('com-img-tag');
   const label = document.getElementById('com-img-label');
-  if(!prev || !img) return;
+  if(!prev||!img) return;
 
-  // URL inicial
-  let urlInicial;
-  if(entry && entry.src) {
-    urlInicial = entry.src;
-  } else if(entry) {
-    urlInicial = `https://images.unsplash.com/800x400/?${encodeURIComponent(entry.fallback)}&q=80`;
-  } else {
-    const kw = encodeURIComponent(titulo.split(' ').slice(0,3).join(','));
-    urlInicial = `https://images.unsplash.com/800x400/?${kw},corporate&q=80`;
+  prev.style.display = 'block';
+  img.src = '';
+  if(label) label.textContent = '🔍 Buscando imagen para: "' + titulo + '"...';
+
+  // Usar API de Anthropic para obtener URL de imagen relevante
+  buscarImagenConIA(titulo).then(url => {
+    _imgActual = url;
+    _imgIndex  = 0;
+    img.src    = url;
+    img.onerror = () => {
+      img.src    = imagenPorTema(titulo);
+      _imgActual = img.src;
+      img.onerror = null;
+    };
+    if(label) label.textContent = '🤖 Imagen encontrada por Zyra IA';
+  }).catch(() => {
+    const url  = imagenPorTema(titulo);
+    _imgActual = url;
+    img.src    = url;
+    if(label) label.textContent = '🌐 Imagen web seleccionada';
+  });
+}
+
+async function buscarImagenConIA(titulo) {
+  // Imágenes propias de Saludsa — prioridad máxima
+  const t  = (titulo||'').toLowerCase();
+  const tn = t.normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const n  = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'');
+
+  if(['campeonato','relampago','torneo','futbol','deporte','partido','cancha'].some(k=>tn.includes(n(k))))
+    return 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg';
+  if(['madre','mama','mujer','inscripcion','maternidad'].some(k=>tn.includes(n(k))))
+    return 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png';
+
+  // Detección por palabras clave — imagen relevante desde Unsplash
+  const KEYWORDS = [
+    { words:['nino','niño','ninos','niños','infantil','infancia','pequeño'],         url:'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80' },
+    { words:['padre','papa','papá','paternidad'],                                    url:'https://images.unsplash.com/photo-1559036397-bbe36fd038c5?w=800&q=80' },
+    { words:['reunion','reunión','meeting','asamblea','junta','sesion'],              url:'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80' },
+    { words:['capacitacion','capacitación','taller','curso','formacion','entrena'],  url:'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80' },
+    { words:['bienvenida','bienvenido','ingreso','incorporacion','nuevo'],            url:'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80' },
+    { words:['navidad','nochebuena','año nuevo','diciembre','festivo'],               url:'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?w=800&q=80' },
+    { words:['cumpleanos','cumpleaños','aniversario','celebracion','cumple'],         url:'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80' },
+    { words:['felicitacion','felicitación','logro','exito','éxito','reconocimiento'], url:'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80' },
+    { words:['vacaciones','feriado','descanso','break'],                              url:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80' },
+    { words:['salud','bienestar','medico','médico','clinica','ocupacional'],          url:'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80' },
+    { words:['edificio','instalacion','oficina','sede','infraestructura'],            url:'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80' },
+    { words:['tecnologia','tecnología','digital','innovacion','sistema','software'],  url:'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80' },
+    { words:['maestro','profesor','docente','educacion','educación','colegio'],       url:'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80' },
+    { words:['halloween','terror','disfraz','octubre'],                               url:'https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?w=800&q=80' },
+    { words:['amor','corazon','san valentin','valentín','romance'],                   url:'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&q=80' },
+    { words:['urgente','alerta','importante','critico','emergencia'],                 url:'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80' },
+    { words:['trabajo','equipo','colaborador','empleado','rrhh','talento'],           url:'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80' },
+    { words:['premio','award','trofeo','ganador','campeon'],                          url:'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800&q=80' },
+    { words:['viaje','conferencia','congreso','evento'],                              url:'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80' },
+    { words:['alimentacion','comida','almuerzo','nutricion'],                         url:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80' },
+    { words:['seguridad','proteccion','cuidado','prevencion'],                        url:'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=800&q=80' },
+    { words:['voluntariado','voluntario','comunidad','social'],                       url:'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80' },
+  ];
+
+  for(const {words, url} of KEYWORDS) {
+    if(words.some(k => tn.includes(n(k)))) return url;
   }
 
-  img.src = urlInicial;
-  _imgActual = urlInicial;
-  _imgIndex  = 0;
-
-  // Si GitHub falla → automáticamente usa Unsplash del tema
-  img.onerror = () => {
-    const kw = entry?.fallback || encodeURIComponent(titulo.split(' ').slice(0,2).join(','));
-    const fallbackUrl = `https://images.unsplash.com/800x400/?${encodeURIComponent(kw)}&q=80`;
-    img.src    = fallbackUrl;
-    _imgActual = fallbackUrl;
-    if(label) label.textContent = '🌐 Imagen web: ' + temaLabel;
-    img.onerror = null;
-  };
-
-  if(label) label.textContent = entry?.src ? '📁 GitHub: ' + temaLabel : '🌐 Web: ' + temaLabel;
-  prev.style.display = 'block';
+  // Sin coincidencia — corporativa general
+  return 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80';
 }
 
 function cambiarImagen() {
