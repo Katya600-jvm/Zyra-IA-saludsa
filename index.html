@@ -464,6 +464,24 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 <div class="section" id="s-baja">
   <div class="page-title">Baja de Colaborador</div>
   <div class="page-sub">Zyra IA generará las alertas y trazabilidad correspondientes.</div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><div class="card-title"><div class="card-icon" style="background:var(--blue-100);color:var(--blue-600);"><i class="fas fa-search"></i></div>Buscar Colaborador</div></div>
+    <div class="card-body">
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <label class="form-label">Nombre, Apellido o Cédula</label>
+          <input type="text" id="baja-search-input" class="form-control" placeholder="Ej: Juan Pérez o 1234567890" oninput="buscarParaBaja()" style="width:100%;">
+        </div>
+        <button onclick="buscarParaBaja()" style="padding:10px 22px;background:#0073CF;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-search"></i> Buscar
+        </button>
+      </div>
+      <div id="baja-search-results" style="display:none;margin-top:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Resultados:</div>
+        <div id="baja-results-list"></div>
+      </div>
+    </div>
+  </div>
   <div class="main-side">
     <div class="card">
       <div class="card-header"><div class="card-title"><div class="card-icon" style="background:var(--red-100);color:var(--red-500);"><i class="fas fa-user-minus"></i></div>Datos de Salida</div></div>
@@ -749,13 +767,23 @@ textarea.form-control { resize: vertical; min-height: 80px; }
       </div>
       <div class="form-group">
         <label class="form-label">Título del Comunicado *</label>
-        <input type="text" id="com-titulo" class="form-control" placeholder="Ej: Reunión general de equipos — Mayo 2026" oninput="onTituloInput()">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="com-titulo" class="form-control" placeholder="Ej: Reunión general de equipos — Mayo 2026" oninput="onTituloInput()" style="flex:1;">
+          <button type="button" id="mic-titulo-btn" onclick="toggleMicTitulo()" title="Habla para dictar el título"
+            style="width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:#0073CF;color:white;box-shadow:0 2px 8px rgba(0,115,207,0.3);">
+            🎙️
+          </button>
+        </div>
+        <div id="mic-titulo-status" style="display:none;font-size:11px;margin-top:5px;align-items:center;gap:6px;">
+          <span style="width:8px;height:8px;background:#E30613;border-radius:50%;display:inline-block;"></span>
+          <span id="mic-titulo-text" style="color:#E30613;font-weight:600;">Escuchando... habla ahora</span>
+        </div>
       </div>
 
       <!-- Preview imagen seleccionada por IA -->
       <div id="com-img-preview" style="display:none;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--blue-200);position:relative;">
         <div style="position:absolute;top:8px;left:8px;background:rgba(0,87,184,0.85);color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🤖 Imagen seleccionada por Zyra IA</div>
-        <img id="com-img-tag" style="width:100%;max-height:120px;object-fit:cover;display:block;" alt="Imagen del comunicado">
+        <img id="com-img-tag" style="width:100%;height:200px;object-fit:cover;display:block;" alt="Imagen del comunicado">
         <div style="padding:8px 12px;background:var(--blue-50);display:flex;align-items:center;justify-content:space-between;">
           <span style="font-size:11px;color:var(--blue-600);font-weight:600;" id="com-img-label">Imagen seleccionada</span>
           <button type="button" class="btn btn-outline btn-xs" onclick="cambiarImagen()"><i class="fas fa-sync"></i> Cambiar</button>
@@ -1056,6 +1084,7 @@ function nav(id) {
   if (id==='analytics')     renderAnalytics();
   if (id==='reportes')      filtrarReporte();
   if (id==='comunicados')   renderComs();
+  if (id==='agente-chat')   initAgenteChat();
 }
 
 // ── METRICS ─────────────────────────────────────────────────
@@ -1101,6 +1130,17 @@ async function processAlta() {
 
   if (!nombre||!cedula||!correo||!celular||!area||!cargo||!fecha) { showToast('Complete todos los campos obligatorios (*)','warning'); return; }
 
+  // Validar duplicados
+  let celularFmt = celular.replace(/[^0-9]/g,'');
+  if (celularFmt.startsWith('0') && celularFmt.length===10) celularFmt='593'+celularFmt.substring(1);
+  else if (!celularFmt.startsWith('593') && celularFmt.length===9) celularFmt='593'+celularFmt;
+  const cedulaDup  = S.collabs.find(c => c.cedula && c.cedula.trim()===cedula.trim());
+  const correoDup  = S.collabs.find(c => c.correo && c.correo.toLowerCase().trim()===correo.toLowerCase().trim());
+  const celularDup = S.collabs.find(c => c.celular && c.celular.replace(/[^0-9]/g,'').includes(celularFmt.slice(-9)));
+  if (cedulaDup)  { showToast('⚠️ La cédula '+cedula+' ya existe para: '+cedulaDup.nombre,'warning',6000); return; }
+  if (correoDup)  { showToast('⚠️ El correo '+correo+' ya está registrado para: '+correoDup.nombre,'warning',6000); return; }
+  if (celularDup) { showToast('⚠️ El número '+celular+' ya está registrado para: '+celularDup.nombre,'warning',6000); return; }
+
   setEl('ai-alta-est','⏳ Procesando...');
   document.getElementById('aiBadgeAlta').textContent = 'Procesando';
   document.getElementById('aiBadgeAlta').className = 'badge bp';
@@ -1144,6 +1184,14 @@ async function processAlta() {
   }
 
   S.activos++; S.altas++; S.pend++; S.aprobados++;
+  try {
+    const g = JSON.parse(localStorage.getItem('zyra_altas')||'[]');
+    if (!g.find(x=>x.cedula===colab.cedula)) g.push(colab);
+    localStorage.setItem('zyra_altas', JSON.stringify(g));
+    const st = JSON.parse(localStorage.getItem('zyra_stats')||'{}');
+    st.activos=(st.activos||0)+1; st.altas=(st.altas||0)+1;
+    localStorage.setItem('zyra_stats', JSON.stringify(st));
+  } catch(e) {}
   setEl('ai-alta-est','✅ Alta completada');
   document.getElementById('aiBadgeAlta').textContent = res.ok ? 'Aprobado':'Error';
   document.getElementById('aiBadgeAlta').className = res.ok ? 'badge ba':'badge br';
@@ -1232,6 +1280,15 @@ async function processBaja() {
   if (S.activos>0) S.activos--;
   if (S.pend>0) S.pend--;
   S.emails+=2;
+  try {
+    const g = JSON.parse(localStorage.getItem('zyra_altas')||'[]');
+    const ib = g.findIndex(x=>x.correo?.toLowerCase()===correo.toLowerCase()||x.nombre?.toLowerCase()===nombre.toLowerCase());
+    if (ib>=0) g[ib].estado='Baja procesada';
+    localStorage.setItem('zyra_altas', JSON.stringify(g));
+    const st = JSON.parse(localStorage.getItem('zyra_stats')||'{}');
+    st.bajas=(st.bajas||0)+1; if(st.activos>0) st.activos--;
+    localStorage.setItem('zyra_stats', JSON.stringify(st));
+  } catch(e) {}
 
   const idx = S.collabs.findIndex(c=>c.correo?.toLowerCase()===correo.toLowerCase()||c.nombre?.toLowerCase()===nombre.toLowerCase());
   if (idx>=0) S.collabs[idx].estado='Baja procesada';
@@ -1620,6 +1677,100 @@ function getCanalesSeleccionados() {
   return canales;
 }
 // ======================== FIN CANALES ========================
+// ======================== AGENTE CHAT ========================
+const CHAT_MSGS_INIT = [
+  { tipo:'system', texto:'📅 Hoy · ' + new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'long'}) },
+  { tipo:'system', texto:'👋 María Torres se unió al grupo' },
+  { tipo:'bot', sender:'🤖 Zyra IA', texto:'¡Bienvenida María! 🎉 Formas parte de la Comunidad Saludsa. Aquí recibirás comunicados y novedades importantes.', hora:'09:14' },
+  { tipo:'ext', sender:'María Torres', texto:'¡Gracias! Feliz de estar aquí 😊', hora:'09:15' },
+  { tipo:'ext', sender:'Juan Pérez', texto:'¿Cuándo es el Campeonato Relámpago? ⚽', hora:'09:18' },
+  { tipo:'bot', sender:'🤖 Zyra IA', texto:'¡Hola Juan! 🏆 El Campeonato Relámpago 2026 está próximo. El administrador enviará los detalles muy pronto. ¡Empieza a formar tu equipo!', hora:'09:18' },
+  { tipo:'comunicado', sender:'📢 Comunicado Oficial', texto:'⚽ *CAMPEONATO RELÁMPAGO 2026*\n\n¡Llegó el momento! Te invitamos a participar en nuestro campeonato deportivo.\n\n📅 Fecha: 25 de mayo\n📍 Canchas Saludsa\n✍️ Inscripciones: hasta el 22 de mayo', hora:'09:30' },
+  { tipo:'ext', sender:'Carlos Ruiz', texto:'¡Vamos equipo Comercial! 💪🔥', hora:'09:31' },
+];
+
+let chatMsgs = [...CHAT_MSGS_INIT];
+let chatInited = false;
+
+function initAgenteChat() {
+  if(chatInited) return;
+  chatInited = true;
+  renderChatMsgs();
+  setTimeout(()=>{
+    const h = new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'});
+    chatMsgs.push({tipo:'system',texto:'👋 Wagner Vasquez se unió al grupo'});
+    chatMsgs.push({tipo:'bot',sender:'🤖 Zyra IA',texto:'¡Bienvenido Wagner! 🎉 Eres parte de la Comunidad Saludsa.',hora:h});
+    const sj = document.getElementById('statJoins'); if(sj) sj.textContent = parseInt(sj.textContent)+1;
+    agregarActividad('👋','#DCFCE7','Wagner Vasquez','Se unió al grupo',h);
+    renderChatMsgs();
+    showToast('👋 Wagner Vasquez se unió al grupo','info',3000);
+  },8000);
+  setTimeout(()=>{
+    const h = new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'});
+    chatMsgs.push({tipo:'ext',sender:'Wagner Vasquez',texto:'¡Buenas! ¿De qué trata el campeonato? 👀',hora:h});
+    chatMsgs.push({tipo:'bot',sender:'🤖 Zyra IA',texto:'¡Hola Wagner! 🏆 Es un torneo de fútbol entre áreas el 25 de mayo. ¡Únete al equipo de TI!',hora:h});
+    const sm = document.getElementById('statMsgs'); if(sm) sm.textContent = parseInt(sm.textContent)+2;
+    const sb = document.getElementById('statBot'); if(sb) sb.textContent = parseInt(sb.textContent)+1;
+    renderChatMsgs();
+  },16000);
+}
+
+function renderChatMsgs() {
+  const c = document.getElementById('chatMessages');
+  if(!c) return;
+  c.innerHTML = chatMsgs.map(m => {
+    if(m.tipo==='system') return `<div style="text-align:center;"><span style="background:rgba(0,115,207,0.08);border:1px solid rgba(0,115,207,0.15);color:#0073CF;font-size:11px;padding:4px 14px;border-radius:20px;">${m.texto}</span></div>`;
+    if(m.tipo==='bot') return `<div style="max-width:80%;align-self:flex-start;"><div style="font-size:10px;font-weight:700;color:#7C3AED;margin-bottom:3px;">${m.sender}</div><div style="background:white;border:1px solid var(--gray-200);border-left:3px solid #7C3AED;border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:12px;line-height:1.5;white-space:pre-wrap;">${m.texto}</div><div style="font-size:10px;color:var(--gray-400);margin-top:3px;">${m.hora||''}</div></div>`;
+    if(m.tipo==='comunicado') return `<div style="max-width:85%;align-self:flex-start;"><div style="font-size:10px;font-weight:700;color:#0073CF;margin-bottom:3px;">${m.sender}</div><div style="background:#F0F7FF;border:1px solid #BFDBFE;border-left:3px solid #0073CF;border-radius:4px 14px 14px 14px;padding:12px 14px;font-size:11px;line-height:1.6;white-space:pre-wrap;">${m.texto}</div><div style="font-size:10px;color:var(--gray-400);margin-top:3px;">${m.hora||''}</div></div>`;
+    if(m.tipo==='admin') return `<div style="max-width:80%;align-self:flex-end;"><div style="background:#041E42;color:white;border-radius:14px 4px 14px 14px;padding:10px 14px;font-size:12px;line-height:1.5;">${m.texto}</div><div style="font-size:10px;color:var(--gray-400);margin-top:3px;text-align:right;">Tú · ${m.hora||''}</div></div>`;
+    return `<div style="max-width:80%;align-self:flex-start;"><div style="font-size:10px;font-weight:700;color:var(--gray-600);margin-bottom:3px;">${m.sender}</div><div style="background:white;border:1px solid var(--gray-200);border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:12px;line-height:1.5;">${m.texto}</div><div style="font-size:10px;color:var(--gray-400);margin-top:3px;">${m.hora||''}</div></div>`;
+  }).join('');
+  c.scrollTop = c.scrollHeight;
+}
+
+function agregarActividad(icon, bg, nombre, desc, hora) {
+  const c = document.getElementById('actividadReciente');
+  if(!c) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-100);font-size:11px;';
+  div.innerHTML = `<div style="width:28px;height:28px;background:${bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">${icon}</div><div style="flex:1;"><div style="font-weight:700;color:var(--gray-800);">${nombre}</div><div style="color:var(--gray-500);">${desc}</div></div><div style="color:var(--gray-400);font-size:10px;">${hora}</div>`;
+  c.insertBefore(div, c.firstChild);
+  if(c.children.length > 6) c.removeChild(c.lastChild);
+}
+
+function enviarMsgAdmin() {
+  const input = document.getElementById('chatInput');
+  const texto = input?.value?.trim();
+  if(!texto) return;
+  const hora = new Date().toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'});
+  chatMsgs.push({tipo:'admin',texto,hora});
+  input.value = '';
+  const sm = document.getElementById('statMsgs'); if(sm) sm.textContent = parseInt(sm.textContent)+1;
+  renderChatMsgs();
+  setTimeout(()=>{
+    chatMsgs.push({tipo:'system',texto:'🤖 Zyra IA está escribiendo...'});
+    renderChatMsgs();
+    setTimeout(()=>{
+      chatMsgs.pop();
+      const rs = ['✅ Mensaje recibido por el grupo.','📢 Notificación enviada a los colaboradores.','👍 Los participantes han sido informados.'];
+      chatMsgs.push({tipo:'bot',sender:'🤖 Zyra IA',texto:rs[Math.floor(Math.random()*rs.length)],hora});
+      const sb = document.getElementById('statBot'); if(sb) sb.textContent = parseInt(sb.textContent)+1;
+      renderChatMsgs();
+    },1500);
+  },800);
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key==='Enter' && document.getElementById('chatInput')===document.activeElement) enviarMsgAdmin();
+});
+// ======================== FIN AGENTE CHAT ========================
+
+// ======================== AGENTE CHAT ========================
+document.addEventListener('keydown', e => {
+  if(e.key==='Enter' && document.getElementById('chatInput') === document.activeElement) enviarMsgAdmin();
+});
+// ======================== FIN AGENTE CHAT ========================
+
 
 // ======================== INSTAGRAM & TIKTOK ========================
 function usarContenidoAutoIG() {
@@ -1963,29 +2114,45 @@ async function enviarAhoraAprobado() {
   window._enviandoAprobado = true;
   setTimeout(()=>{ window._enviandoAprobado=false; }, 8000);
 
-  const comId  = window._comAprobadoId || '';
-  const titulo = window._comAprobadoTitulo || '';
-  const com    = coms.find(c=>c._id===comId);
+  const comId   = window._comAprobadoId || '';
+  const titulo  = window._comAprobadoTitulo || '';
+  const com     = coms.find(c=>c._id===comId);
   if(com) com.estado='enviado';
 
-  const imagen  = com?.imagen || _imgActual || imagenPorTema(titulo);
-  const grupos  = com?.grupos || [];
+  // Tomar el mensaje exacto generado por Zyra IA
+  const mensaje = com?.mensaje || '';
+  const imagen  = com?.imagen  || _imgActual || imagenPorTema(titulo);
+  const grupos  = com?.grupos  || [];
   const grupoId = '120363425362688531@g.us';
 
+  // Enviar mensaje + imagen al webhook
   const url = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
-    + '?id='     + encodeURIComponent(comId)
+    + '?id='      + encodeURIComponent(comId)
     + '&tipo=inmediato'
-    + '&titulo=' + encodeURIComponent(titulo)
-    + '&numero=' + encodeURIComponent(grupoId);
+    + '&titulo='  + encodeURIComponent(titulo)
+    + '&numero='  + encodeURIComponent(grupoId);
 
+  // Enviar por POST para incluir el mensaje completo sin límite de URL
   try {
-    await fetch(url, { method:'GET', mode:'no-cors' });
+    await fetch(url, {
+      method: 'POST',
+      mode:   'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id:      comId,
+        tipo:    'inmediato',
+        titulo:  titulo,
+        mensaje: mensaje,
+        imagen:  imagen,
+        numero:  grupoId
+      })
+    });
   } catch(e) { console.log('fetch error:', e); }
 
   closeModal('modProgramar');
   renderComs();
   showToast('✅ Comunicado "'+titulo+'" enviado al grupo WhatsApp','success',5000);
-  addNotif({nombre:'Comunicado: '+titulo, accion:'ALTA', canal:'WhatsApp', destinatario:'ConcursoIA-Zyra', detalle:'Enviado inmediatamente', estado:'Enviado'});
+  addNotif({nombre:'Comunicado: '+titulo, accion:'ALTA', canal:'WhatsApp', destinatario:'ConcursoIA-Zyra', detalle:'Aprobado y enviado', estado:'Enviado'});
   updateMetrics();
   window._enviandoAprobado = false;
 }
@@ -1995,26 +2162,34 @@ async function enviarProgramadoAprobado() {
   window._enviandoAprobado = true;
   setTimeout(()=>{ window._enviandoAprobado=false; }, 8000);
 
-  const fecha  = document.getElementById('prog-fecha').value;
+  const fecha   = document.getElementById('prog-fecha').value;
   if(!fecha){ showToast('Selecciona la fecha y hora','warning'); window._enviandoAprobado=false; return; }
 
-  const comId  = window._comAprobadoId || '';
-  const titulo = window._comAprobadoTitulo || '';
-  const com    = coms.find(c=>c._id===comId);
+  const comId   = window._comAprobadoId || '';
+  const titulo  = window._comAprobadoTitulo || '';
+  const com     = coms.find(c=>c._id===comId);
   if(com){ com.estado='programado'; com.fecha=fecha; }
 
+  const mensaje = com?.mensaje || '';
+  const imagen  = com?.imagen  || _imgActual || imagenPorTema(titulo);
   const grupoId = '120363425362688531@g.us';
 
-  // Registrar como programado — n8n lo enviará en la fecha indicada
-  const url = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar'
-    + '?id='     + encodeURIComponent(comId)
-    + '&tipo=programado'
-    + '&fecha='  + encodeURIComponent(fecha)
-    + '&titulo=' + encodeURIComponent(titulo)
-    + '&numero=' + encodeURIComponent(grupoId);
-
+  const url = 'https://saludsa.app.n8n.cloud/webhook/zyra-com-aprobar';
   try {
-    await fetch(url, { method:'GET', mode:'no-cors' });
+    await fetch(url, {
+      method: 'POST',
+      mode:   'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id:      comId,
+        tipo:    'programado',
+        fecha:   fecha,
+        titulo:  titulo,
+        mensaje: mensaje,
+        imagen:  imagen,
+        numero:  grupoId
+      })
+    });
   } catch(e) { console.log('fetch error:', e); }
 
   closeModal('modProgramar');
@@ -2081,60 +2256,19 @@ function imagenPorTema(titulo) {
   function norm(s) {
     return (s||'').toLowerCase()
       .normalize('NFD')
-      .replace(/[̀-ͯ]/g,'')
-      .replace(/ñ/g,'n')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/\u00f1/g,'n')
       .replace(/[^a-z0-9\s]/g,' ')
       .trim();
   }
   const t = norm(titulo);
-
-  // GitHub Saludsa — prioridad
   if(['campeonato','relampago','torneo','futbol','deporte','partido'].some(k=>t.includes(k)))
     return 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/Campeonato-Relampago-2026.jpg';
   if(['madre','mama','mujer','inscripcion','maternidad'].some(k=>t.includes(k)))
     return 'https://raw.githubusercontent.com/Katya600-jvm/Zyra-IA-saludsa/main/dia-de-la-madre.png';
-
-  // Unsplash por tema
-  if(['nino','ninos','infantil','infancia','pequeno'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80';
-  if(['padre','papa','paternidad'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1559036397-bbe36fd038c5?w=800&q=80';
-  if(['reunion','meeting','asamblea','junta','sesion'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80';
-  if(['capacitacion','taller','curso','formacion'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80';
-  if(['bienvenida','bienvenido','ingreso'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=80';
-  if(['navidad','nochebuena','diciembre'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?w=800&q=80';
-  if(['cumpleanos','aniversario','cumple'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800&q=80';
-  if(['felicitacion','logro','exito','reconocimiento'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=80';
-  if(['vacaciones','feriado','descanso'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80';
-  if(['salud','bienestar','medico','clinica'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80';
-  if(['edificio','instalacion','oficina','sede'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80';
-  if(['tecnologia','digital','innovacion','software'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80';
-  if(['maestro','profesor','educacion','docente'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80';
-  if(['urgente','alerta','emergencia'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80';
-  if(['premio','trofeo','ganador'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800&q=80';
-  if(['halloween','terror','disfraz'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1508361001413-7a9dca21d08a?w=800&q=80';
-  if(['amor','corazon','valentin'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&q=80';
-  if(['trabajo','equipo','colaborador'].some(k=>t.includes(k)))
-    return 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=800&q=80';
-
-  // Sin coincidencia → imagen única por título usando Picsum
-  const seed = titulo.split('').reduce((a,c)=>a+c.charCodeAt(0),0) % 1000;
-  return 'https://picsum.photos/seed/' + seed + '/800/400';
+  const keyword = titulo.trim().split(/\s+/).filter(w=>w.length>1).slice(0,3).join(' ') || titulo.trim();
+  const seed = titulo.split('').reduce((a,c)=>a+c.charCodeAt(0),0) % 999;
+  return 'https://source.unsplash.com/800x450/?' + encodeURIComponent(keyword) + '&sig=' + seed;
 }
 
 function mostrarImagenIA(titulo) {
@@ -2361,11 +2495,134 @@ function loadTwiins() {
       showToast('✓ ' + S.collabs.length + ' colaboradores cargados', 'success', 3000);
       setEl('ai-last', 'Base Twiins (' + S.collabs.length + ')');
       setEl('collabCountTitle', S.collabs.length.toLocaleString());
+      try {
+        const g = JSON.parse(localStorage.getItem('zyra_altas')||'[]');
+        const st = JSON.parse(localStorage.getItem('zyra_stats')||'{}');
+        g.forEach(c => {
+          const ex = S.collabs.find(x=>x.cedula===c.cedula||x.correo?.toLowerCase()===c.correo?.toLowerCase());
+          if (!ex) S.collabs.push(c); else ex.estado=c.estado;
+        });
+        if (st.altas)  S.altas  = (S.altas||0)  + st.altas;
+        if (st.bajas)  S.bajas  = (S.bajas||0)  + st.bajas;
+        S.activos = S.collabs.filter(c=>c.estado==='Activo'||c.estado==='Pendiente de ingreso').length;
+        updateMetrics(); renderCollabs();
+      } catch(e) {}
     }
   }
   load();
 }
 
+
+// ── MICRÓFONO TÍTULO ─────────────────────
+let micTituloActive = false;
+let micRecognition = null;
+function toggleMicTitulo() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Usa Chrome para reconocimiento de voz.', 'warning', 4000); return;
+  }
+  if (micTituloActive) { if (micRecognition) micRecognition.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  micRecognition = new SR();
+  micRecognition.lang = 'es-EC';
+  micRecognition.continuous = false;
+  micRecognition.interimResults = true;
+  micRecognition.onstart = () => {
+    micTituloActive = true;
+    const btn = document.getElementById('mic-titulo-btn');
+    const st  = document.getElementById('mic-titulo-status');
+    if (btn) { btn.style.background = '#E30613'; btn.textContent = '⏹️'; }
+    if (st)  st.style.display = 'flex';
+    showToast('🎙️ Escuchando... habla el título', 'info', 3000);
+  };
+  micRecognition.onresult = (e) => {
+    let t = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+    const inp = document.getElementById('com-titulo');
+    if (inp) { inp.value = t.charAt(0).toUpperCase() + t.slice(1); onTituloInput(); }
+    const txt = document.getElementById('mic-titulo-text');
+    if (txt) txt.textContent = '"' + t + '"';
+  };
+  micRecognition.onend = () => {
+    micTituloActive = false;
+    const btn = document.getElementById('mic-titulo-btn');
+    const st  = document.getElementById('mic-titulo-status');
+    if (btn) { btn.style.background = '#0073CF'; btn.textContent = '🎙️'; }
+    if (st)  st.style.display = 'none';
+    const titulo = document.getElementById('com-titulo')?.value?.trim();
+    if (titulo) showToast('✅ Título: "' + titulo + '"', 'success', 3000);
+  };
+  micRecognition.onerror = (e) => {
+    micTituloActive = false;
+    const btn = document.getElementById('mic-titulo-btn');
+    const st  = document.getElementById('mic-titulo-status');
+    if (btn) { btn.style.background = '#0073CF'; btn.textContent = '🎙️'; }
+    if (st)  st.style.display = 'none';
+    if (e.error === 'not-allowed') showToast('⚠️ Permiso de micrófono denegado.', 'warning');
+  };
+  micRecognition.start();
+}
+// ── FIN MICRÓFONO ─────────────────────
+
+// ── BUSCADOR BAJA ─────────────────────
+function buscarParaBaja() {
+  const q = (document.getElementById('baja-search-input')?.value||'').toLowerCase().trim();
+  const resultsDiv = document.getElementById('baja-search-results');
+  const listDiv    = document.getElementById('baja-results-list');
+  if (!resultsDiv||!listDiv) return;
+  if (q.length < 2) { resultsDiv.style.display='none'; return; }
+  const resultados = S.collabs.filter(c => {
+    const nombre = (c.nombre||c.nombre_completo||'').toLowerCase();
+    const cedula = (c.cedula||'').toLowerCase();
+    return nombre.includes(q)||cedula.includes(q);
+  }).slice(0,10);
+  if (resultados.length===0) {
+    listDiv.innerHTML='<div style="padding:12px;background:#FEF2F2;border-radius:8px;color:#E30613;font-size:13px;">⚠️ No se encontraron colaboradores con ese dato.</div>';
+    resultsDiv.style.display='block'; return;
+  }
+  listDiv.innerHTML = resultados.map(c => {
+    const nombre  = c.nombre||c.nombre_completo||'—';
+    const cedula  = c.cedula||'—';
+    const correo  = c.correo||c.correo_institucional||'—';
+    const celular = c.celular||c.numero_celular_whatsapp||'—';
+    const area    = c.area||'—';
+    const estado  = c.estado||'Activo';
+    const color   = estado==='Activo'?'#16A34A':estado==='Baja procesada'?'#E30613':'#F59E0B';
+    return `<div style="border:1px solid var(--gray-200);border-radius:10px;padding:12px 16px;margin-bottom:8px;background:white;cursor:pointer;"
+      onclick="seleccionarParaBaja('${nombre.replace(/'/g,"\'")}','${cedula}','${correo}','${celular}','${area}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:14px;font-weight:700;color:var(--gray-900);">${nombre}</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:${color}20;color:${color};">${estado}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px;color:var(--gray-500);">
+        <span>📋 ${cedula}</span><span>📧 ${correo}</span><span>📱 ${celular}</span>
+      </div>
+      <div style="margin-top:4px;font-size:11px;color:var(--gray-400);">🏢 ${area}</div>
+      <div style="margin-top:6px;font-size:11px;color:#0073CF;font-weight:600;">← Clic para llenar el formulario</div>
+    </div>`;
+  }).join('');
+  resultsDiv.style.display='block';
+}
+function seleccionarParaBaja(nombre,cedula,correo,celular,area) {
+  const fNombre=document.getElementById('b-nombre');
+  const fCorreo=document.getElementById('b-correo');
+  const fCelular=document.getElementById('b-celular');
+  const fArea=document.getElementById('b-area');
+  if(fNombre) fNombre.value=nombre;
+  if(fCorreo) fCorreo.value=correo;
+  if(fCelular) fCelular.value=celular;
+  if(fArea){
+    const opt=Array.from(fArea.options).find(o=>o.value.toLowerCase()===area.toLowerCase()||o.text.toLowerCase()===area.toLowerCase());
+    if(opt) fArea.value=opt.value;
+  }
+  const rd=document.getElementById('baja-search-results');
+  const si=document.getElementById('baja-search-input');
+  if(rd) rd.style.display='none';
+  if(si) si.value='';
+  showToast('✓ Datos de '+nombre+' cargados en el formulario','success',3000);
+  const card=document.querySelector('#s-baja .main-side');
+  if(card) card.scrollIntoView({behavior:'smooth'});
+}
+// ── FIN BUSCADOR BAJA ──────────────────────────────────────
 </script>
 </body>
 </html>
